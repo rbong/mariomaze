@@ -1,0 +1,336 @@
+<!DOCTYPE html>
+<html>
+<head lang="en">
+    <meta charset="UTF-8">
+    <title>Scary Maze</title>
+</head>
+<body>
+</body>
+    <script src="https://ajax.googleapis.com/ajax/libs/jquery/2.1.4/jquery.min.js"></script>
+    <script type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/pixi.js/3.0.7/pixi.min.js"></script>
+    <script type="text/javascript" src="http://www.javascriptoo.com/application/html/js/goldfire/howler.js/howler.min.js"></script>
+    <script type="application/javascript" src="js/level_saved.js"></script>
+    <script type="application/javascript">
+        var bricks = [];
+        var level = [];
+        var renderer = PIXI.autoDetectRenderer(800, 600,{backgroundColor : 0xff0000});
+        var brick_texture = PIXI.Texture.fromImage('img/brick.png');
+        var game_over_flag = false;
+        var stage_clear_flag = false;
+        var star_flag = false;
+        var mouse_flag = false;
+        var bg_changed = false;
+        var lives = 1;
+        var star_position_number = 0;
+        var mario_respawn_position ={"x":50,"y":50};
+
+        // document.body.addEventListener('click', function(e){
+
+        // });
+
+        document.body.appendChild(renderer.view);
+
+        // create the root of the scene graph
+        var stage = new PIXI.Container();
+        var style = {
+            font : 'bold italic 36px Arial',
+            fill : '#F7EDCA',
+            stroke : '#4a1850',
+            strokeThickness : 5,
+            dropShadow : true,
+            dropShadowColor : '#000000',
+            dropShadowAngle : Math.PI / 6,
+            dropShadowDistance : 6,
+            wordWrap : true,
+            wordWrapWidth : 440
+        };
+        var game_over_text = new PIXI.Text('Game Over', style);
+        var stage_clear_text = new PIXI.Text('You Win!', style);
+        game_over_text.x = stage_clear_text.x = 300;
+        game_over_text.y = stage_clear_text.y = 270;
+
+
+        // create a texture from an image path
+        var texture_right      = PIXI.Texture.fromImage('img/mario_right.png');
+        var texture_left       = PIXI.Texture.fromImage('img/mario_left.png');
+        var texture_mushroom   = PIXI.Texture.fromImage('img/mushroom.png');
+        var texture_star       = PIXI.Texture.fromImage('img/star.png');
+        var texture_star_right = PIXI.Texture.fromImage('img/star_right.png');
+        var texture_star_left  = PIXI.Texture.fromImage('img/star_left.png');
+        var texture_die        = PIXI.Texture.fromImage('img/mario_die.png');
+
+        // load the level first so that mario is drawn on top
+        load_level();
+
+        // create a new Sprite using the texture
+        var mario    = new PIXI.Sprite(texture_right);
+        var mushroom = new PIXI.Sprite(texture_mushroom);
+        var star     = new PIXI.Sprite(texture_star);
+
+        new_game();
+
+        stage.addChild(mushroom);
+        stage.addChild(mario);
+
+        // start animating
+        animate();
+
+        function animate() {
+            requestAnimationFrame(animate);
+
+            if (hit_test_sprite(mario, star)){
+                set_invincible();
+            }
+
+            if (!game_over_flag && !star_flag){
+                mario.position.x += mario.vx;
+                mario.position.y += mario.vy;
+                collision_detection_bricks(mario);
+            }
+
+            if ((hit_test_sprite(mario, mushroom) || stage_clear_flag) && !game_over_flag){
+                stage_clear();
+            }
+
+            // render the container
+            renderer.render(stage);
+        }
+
+        function set_invincible(){
+            stop_all_sound();
+            star_flag = true;
+            sound_star.play();
+
+            stage.removeChild(star);
+
+            if (mario.texture == texture_right)
+            {
+                mario.texture = texture_star_right;
+            }
+            else if (mario.texture == texture_left)
+            {
+                mario.texture = texture_star_left;
+            }
+        }
+
+        function collision_detection_bricks(hit_box){
+            for (i = 0; i < bricks.length; i++){
+                var brick = bricks[i];
+                var hit = hit_test_rectangle(brick, hit_box);
+
+                if (hit === true){
+                    console.log("Lost a life :(");
+                    lives--;
+                    if (lives == 0) {
+                        game_over();
+                        return;
+                    } else {
+                        mario.position.x = mario_respawn_position.x;
+                        mario.position.y = mario_respawn_position.y;
+                    }
+
+                } else {
+                    renderer.backgroundColor = 0;
+                }
+
+            }
+        }
+
+        function new_game(){
+            game_over_flag = false;
+            stage_clear_flag = false;
+            renderer.backgroundColor = "0x000000";
+
+            // center the sprite's anchor point
+            mario.anchor.x = 0.0;
+            mario.anchor.y = 0.0;
+
+            star.anchor.x = 0.0;
+            star.anchor.y = 0.0;
+
+            mushroom.anchor.y = 0.5;
+            mushroom.anchor.x = 0.5;
+
+            mario.position.x = 50;
+            mario.position.y = 50;
+
+            star.position.x = star_position[0].x;
+            star.position.y = star_position[0].y;
+
+            mushroom.position.x = 620;
+            mushroom.position.y = 460;
+
+            mario.vx = 0;
+            mario.vy = 0;
+
+            stage.removeChild(game_over_text);
+            stage.removeChild(stage_clear_text);
+            stage.removeChild(star);
+        }
+
+        function stage_clear(){
+            if (!stage_clear_flag){
+                stage_clear_flag = true;
+
+                mario.position.x += 0.5 * mario.width;
+                mario.position.y += 0.5 * mario.height;
+                mario.anchor.x = 0.5;
+                mario.anchor.y = 0.5;
+
+                for (i = 0; i < bricks.length; i++){
+                    bricks[i].position.x += 0.5 * bricks[i].width;
+                    bricks[i].position.y += 0.5 * bricks[i].height;
+                    bricks[i].anchor.x = 0.5;
+                    bricks[i].anchor.y = 0.5;
+                }
+
+                stop_all_sound();
+                sound_stage_clear.play();
+
+                setTimeout(function(){
+                    location.reload();
+                },6000);
+
+                stage.addChild(stage_clear_text);
+            }
+
+            renderer.backgroundColor = "0x00ff00";
+
+            mushroom.rotation += 0.1;
+            mario.rotation += 0.1;
+            star.rotation += 0.1;
+            for (i = 0; i < bricks.length; i++){
+                bricks[i].rotation += 0.1;
+            }
+        }
+
+        function game_over(){
+            var animation_frame = 0;
+
+            stage.addChild(game_over_text);
+            renderer.backgroundColor = "0xff0000";
+            bg_changed = true;
+            game_over_flag = true;
+
+            mario.texture = texture_die;
+
+            stop_all_sound();
+            sound_game_over.play();
+
+            var timer_id = setInterval(function () {myTimer()}, 1000);
+
+            setTimeout(function(){
+                window.clearTimeout(timer_id);
+                location.reload();
+            },3000);
+
+            function myTimer() {
+                if (bg_changed){
+                    renderer.backgroundColor = "0x000000";
+                    bg_changed = false;
+                } else {
+                    renderer.backgroundColor = "0xff0000";
+                    bg_changed = true;
+                }
+            }
+
+            setInterval(game_over_animation, 60);
+
+            function game_over_animation(){
+                if (animation_frame > 10 && animation_frame < 20){
+                    mario.position.y -= 5;
+                }
+                else if (animation_frame >= 20){
+                    mario.position.y += 5;
+                }
+
+                animation_frame += 1;
+                console.log ("animation frame ", animation_frame);
+            }
+
+            //new_game();
+        }
+
+        function hit_test_sprite (s1, s2) {
+            // ensures that the two objects are actually in the stage
+            if (stage.children.indexOf(s1) == -1 ||
+                    stage.children.indexOf(s2) == -1){
+                return false;
+            }
+
+            return hit_test_rectangle(s1, s2);
+        }
+
+        function hit_test_rectangle(r1, r2) {
+            //Define the variables we'll need to calculate
+            var hit, combinedHalfWidths, combinedHalfHeights, vx, vy;
+
+            //hit will determine whether there's a collision
+            hit = false;
+
+            //Find the center points of each sprite
+            r1.centerX = r1.x + r1.width / 2;
+            r1.centerY = r1.y + r1.height / 2;
+            r2.centerX = r2.x + r2.width / 2;
+            r2.centerY = r2.y + r2.height / 2;
+
+            //Find the half-widths and half-heights of each sprite
+            r1.halfWidth = r1.width / 2;
+            r1.halfHeight = r1.height / 2;
+            r2.halfWidth = r2.width / 2;
+            r2.halfHeight = r2.height / 2;
+
+            //Calculate the distance vector between the sprites
+            vx = r1.centerX - r2.centerX;
+            vy = r1.centerY - r2.centerY;
+
+            //Figure out the combined half-widths and half-heights
+            combinedHalfWidths = r1.halfWidth + r2.halfWidth;
+            combinedHalfHeights = r1.halfHeight + r2.halfHeight;
+
+            //Check for a collision on the x axis
+            if (Math.abs(vx) < combinedHalfWidths) {
+
+                //A collision might be occuring. Check for a collision on the y axis
+                if (Math.abs(vy) < combinedHalfHeights) {
+
+                    //There's definitely a collision happening
+                    hit = true;
+                } else {
+
+                    //There's no collision on the y axis
+                    hit = false;
+                }
+                } else {
+
+                    //There's no collision on the x axis
+                    hit = false;
+                }
+
+            //`hit` will be either `true` or `false`
+            return hit;
+        };
+
+        function load_level(){
+            for (i = 0; i < level_saved.length; i++){
+                var position = level_saved[i];
+                var brick = new PIXI.Sprite(brick_texture);
+                // center the sprite's anchor point
+                brick.anchor.x = 0.0;
+                brick.anchor.y = 0.0;
+                brick.position.x = position.x;
+                brick.position.y = position.y;
+                bricks.push(brick);
+                level.push(position);
+                stage.addChild(brick);
+            }
+            //stage.addChild(timer_text);
+
+        }
+
+    </script>
+    <script type="application/javascript" src="js/keyboard.js"></script>
+    <script type="application/javascript" src="js/mouse.js"></script>
+    <script type="application/javascript" src="js/sound.js"></script>
+    <script type="application/javascript" src="js/timer.js"></script>
+</html>
