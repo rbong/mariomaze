@@ -1,23 +1,22 @@
+// monitor mouse movement on the entire page
 $(document).mousemove(
     function(e){
+        // adjust the positions to be centered on mario
         var x_pos = e.pageX - mario.width;
         var y_pos = e.pageY - mario.height;
 
+        // if the mouse is within 5 pixels, enable mouse input
         if (Math.abs (mario.position.x - x_pos) < 5 &&
                 Math.abs (mario.position.y - y_pos) < 5){
             mouse_flag = true;
         }
         if (mouse_flag && !(game_over_flag || stage_clear_flag)){
-            if (!star_flag){
-                var hit_box = get_mouse_hit_box(x_pos, y_pos);
-                collision_detection_bricks(hit_box);
-            }
-
             move_mario (x_pos - mario.position.x, y_pos - mario.position.y);
         }
     }
 );
 
+// makes a rectangle between mario's position and the mouse position
 function get_mouse_hit_box(x_pos, y_pos){
     var x, y, width, height;
 

@@ -46,6 +46,7 @@
         };
         var game_over_text = new PIXI.Text('Game Over', style);
         var stage_clear_text = new PIXI.Text('You Win!', style);
+
         game_over_text.x = stage_clear_text.x = 300;
         game_over_text.y = stage_clear_text.y = 270;
 
@@ -59,9 +60,6 @@
         var texture_star_left  = PIXI.Texture.fromImage('img/star_left.png');
         var texture_die        = PIXI.Texture.fromImage('img/mario_die.png');
 
-        // load the level first so that mario is drawn on top
-        load_level();
-
         // create a new Sprite using the texture
         var mario    = new PIXI.Sprite(texture_right);
         var mushroom = new PIXI.Sprite(texture_mushroom);
@@ -69,40 +67,57 @@
 
         new_game();
 
+        // load the level first so that mario is drawn on top
+        load_level();
+
+        // add sprites to the screen
         stage.addChild(mushroom);
         stage.addChild(mario);
 
-        // start animating
+        // start the main loop
         animate();
 
+        // the main loop
         function animate() {
             requestAnimationFrame(animate);
 
-            if (hit_test_sprite(mario, star)){
-                set_invincible();
-            }
-
-            if (!game_over_flag && !star_flag){
+            // test for brick collision if mario is not invincible
+            if (!star_flag && !game_over_flag && !stage_clear_flag){
                 mario.position.x += mario.vx;
                 mario.position.y += mario.vy;
                 collision_detection_bricks(mario);
             }
 
-            if ((hit_test_sprite(mario, mushroom) || stage_clear_flag) && !game_over_flag){
-                stage_clear();
+            // do not check for collision if we have lost
+            if (!game_over_flag){
+                // if mario is touching the star, make him invincible
+                if (hit_test_sprite(mario, star)){
+                    set_invincible();
+                }
+
+                // test if we are touching the shroom, and if so trigger stage clear animation frame
+                if ((hit_test_sprite(mario, mushroom) || stage_clear_flag)){
+                    stage_clear();
+                }
             }
 
             // render the container
             renderer.render(stage);
         }
 
+        // called when mario touches the star to turn him invincible
         function set_invincible(){
+            // stop other music and play the star theme
             stop_all_sound();
+            // the star flag must be toggled here because of an audio glitch
+            // it will not play otherwise if the star music played immediately
             star_flag = true;
             sound_star.play();
 
+            // the star is collected, remove it
             stage.removeChild(star);
 
+            // set mario's texture to the corresponding star texture
             if (mario.texture == texture_right)
             {
                 mario.texture = texture_star_right;
@@ -113,6 +128,7 @@
             }
         }
 
+        // test if we are touching bricks, and if so toggle a game over
         function collision_detection_bricks(hit_box){
             for (i = 0; i < bricks.length; i++){
                 var brick = bricks[i];
@@ -132,10 +148,10 @@
                 } else {
                     renderer.backgroundColor = 0;
                 }
-
             }
         }
 
+        // restarts the game
         function new_game(){
             game_over_flag = false;
             stage_clear_flag = false;
@@ -152,7 +168,7 @@
             mushroom.anchor.x = 0.5;
 
             mario.position.x = 50;
-            mario.position.y = 50;
+            mario.position.y = 47;
 
             star.position.x = star_position[0].x;
             star.position.y = star_position[0].y;
@@ -168,15 +184,18 @@
             stage.removeChild(star);
         }
 
+        // triggered when we win the game
         function stage_clear(){
+            // this block only runs once
             if (!stage_clear_flag){
                 stage_clear_flag = true;
 
+                // set correct anchor points for spinning
+                // also set offset so the positions do not change
                 mario.position.x += 0.5 * mario.width;
                 mario.position.y += 0.5 * mario.height;
                 mario.anchor.x = 0.5;
                 mario.anchor.y = 0.5;
-
                 for (i = 0; i < bricks.length; i++){
                     bricks[i].position.x += 0.5 * bricks[i].width;
                     bricks[i].position.y += 0.5 * bricks[i].height;
@@ -187,15 +206,19 @@
                 stop_all_sound();
                 sound_stage_clear.play();
 
+                // after 6 seconds reload the page
                 setTimeout(function(){
                     location.reload();
                 },6000);
 
+                // display winning text
                 stage.addChild(stage_clear_text);
             }
 
+            // set the background to green
             renderer.backgroundColor = "0x00ff00";
 
+            // rotate all objects
             mushroom.rotation += 0.1;
             mario.rotation += 0.1;
             star.rotation += 0.1;
@@ -204,18 +227,22 @@
             }
         }
 
+        // triggered when we lose the game
         function game_over(){
+            // the current animation frame number
             var animation_frame = 0;
 
             stage.addChild(game_over_text);
+
+            // the background toggles between colors
             renderer.backgroundColor = "0xff0000";
             bg_changed = true;
-            game_over_flag = true;
-
-            mario.texture = texture_die;
 
             stop_all_sound();
+            game_over_flag = true;
             sound_game_over.play();
+
+            mario.texture = texture_die;
 
             var timer_id = setInterval(function () {myTimer()}, 1000);
 
@@ -234,9 +261,11 @@
                 }
             }
 
+            // animate mario falling
             setInterval(game_over_animation, 60);
 
             function game_over_animation(){
+                // mario freezes, goes up, then goes down
                 if (animation_frame > 10 && animation_frame < 20){
                     mario.position.y -= 5;
                 }
@@ -245,7 +274,6 @@
                 }
 
                 animation_frame += 1;
-                console.log ("animation frame ", animation_frame);
             }
 
             //new_game();
@@ -261,6 +289,7 @@
             return hit_test_rectangle(s1, s2);
         }
 
+        // tests collisions between two rectangles
         function hit_test_rectangle(r1, r2) {
             //Define the variables we'll need to calculate
             var hit, combinedHalfWidths, combinedHalfHeights, vx, vy;
@@ -311,6 +340,7 @@
             return hit;
         };
 
+        // loads the level into a variable
         function load_level(){
             for (i = 0; i < level_saved.length; i++){
                 var position = level_saved[i];
