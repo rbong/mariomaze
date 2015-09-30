@@ -27,7 +27,7 @@ var sound_game_over = new Howl({
 
 // halts all sounds
 function stop_all_sound(){
-    console.log ("Stopping sounds.");
+    console.log ("Stopping sounds");
 
     // test flags for efficiency and to avoid glitches
     if (star_flag){

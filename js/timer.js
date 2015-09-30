@@ -14,6 +14,8 @@ function tick_timer(){
             game_over();
         }
         else if (time_left == 29 && !star_flag){
+            console.log ("Time is running out");
+
             stop_all_sound();
             quick_theme.play();
         }

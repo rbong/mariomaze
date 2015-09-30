@@ -107,6 +107,8 @@
 
         // called when mario touches the star to turn him invincible
         function set_invincible(){
+            console.log("Setting mario to invincible");
+
             // stop other music and play the star theme
             stop_all_sound();
             // the star flag must be toggled here because of an audio glitch
@@ -157,6 +159,8 @@
             stage_clear_flag = false;
             renderer.backgroundColor = "0x000000";
 
+            console.log("Starting a new game");
+
             // center the sprite's anchor point
             mario.anchor.x = 0.0;
             mario.anchor.y = 0.0;
@@ -189,6 +193,8 @@
             // this block only runs once
             if (!stage_clear_flag){
                 stage_clear_flag = true;
+
+                console.log("Stage is clear");
 
                 // set correct anchor points for spinning
                 // also set offset so the positions do not change
@@ -231,6 +237,9 @@
         function game_over(){
             // the current animation frame number
             var animation_frame = 0;
+
+            console.log("Game over");
+
 
             stage.addChild(game_over_text);
 
@@ -342,6 +351,8 @@
 
         // loads the level into a variable
         function load_level(){
+            console.log("Loading the level into memory");
+
             for (i = 0; i < level_saved.length; i++){
                 var position = level_saved[i];
                 var brick = new PIXI.Sprite(brick_texture);
